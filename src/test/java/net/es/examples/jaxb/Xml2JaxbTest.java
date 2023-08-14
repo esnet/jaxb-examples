@@ -25,7 +25,7 @@ public class Xml2JaxbTest {
      */
     @Test
     public void xml2NsaJaxb() throws JAXBException {
-        NsaType xml2Jaxb = NsaParser.getInstance().xml2Jaxb(NsaType.class, NSA_DOCUMENT);
+        NsaType xml2Jaxb = NsaParser.getInstance().xml2Jaxb(NSA_DOCUMENT);
         log.debug("Parsed XML document nsaId=" + xml2Jaxb.getId());
         assertEquals("urn:ogf:network:geant.net:2013:nsa", xml2Jaxb.getId());
     }
@@ -37,7 +37,7 @@ public class Xml2JaxbTest {
      */
     @Test
     public void xml2TopologyJaxb() throws JAXBException {
-        NmlTopologyType xml2Jaxb = NmlParser.getInstance().xml2Jaxb(NmlTopologyType.class, TOPOLOGY_DOCUMENT);
+        NmlTopologyType xml2Jaxb = NmlParser.getInstance().xml2Jaxb(TOPOLOGY_DOCUMENT);
         log.debug("Parsed XML document topologyId=" + xml2Jaxb.getId());
         assertEquals("urn:ogf:network:ja.net:2013:topology", xml2Jaxb.getId());
     }
