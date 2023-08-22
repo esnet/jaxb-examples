@@ -8,10 +8,10 @@ import net.es.examples.jaxb.topology.*;
 import org.junit.Test;
 
 import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.datatype.XMLGregorianCalendar;
 
 import static net.es.examples.jaxb.Nsi.NSI_SERVICETYPE_EVTS;
-import static net.es.examples.jaxb.Relationships.HAS_INBOUND_PORT;
-import static net.es.examples.jaxb.Relationships.IS_ALIAS;
+import static net.es.examples.jaxb.Relationships.*;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -60,23 +60,39 @@ public class EncoderTest {
     nmlLabelGroupType.setValue("1780-1787");
 
     // Add the isAlias relationship if present.
-    NmlPortGroupType pgIsAlias = topFactory.createNmlPortGroupType();
-    pgIsAlias.setId("urn:ogf:network:NetworkA:portX-out");
+    NmlPortGroupType pgInIsAlias = topFactory.createNmlPortGroupType();
+    pgInIsAlias.setId("urn:ogf:network:NetworkA:portX-out");
 
-    NmlPortGroupRelationType isAliasRelation = topFactory.createNmlPortGroupRelationType();
-    isAliasRelation.setType(IS_ALIAS);
-    isAliasRelation.getPortGroup().add(pgIsAlias);
+    NmlPortGroupType pgOutIsAlias = topFactory.createNmlPortGroupType();
+    pgOutIsAlias.setId("urn:ogf:network:NetworkA:portX-in");
+
+    NmlPortGroupRelationType isInAliasRelation = topFactory.createNmlPortGroupRelationType();
+    isInAliasRelation.setType(IS_ALIAS);
+    isInAliasRelation.getPortGroup().add(pgInIsAlias);
+
+    NmlPortGroupRelationType isOutAliasRelation = topFactory.createNmlPortGroupRelationType();
+    isOutAliasRelation.setType(IS_ALIAS);
+    isOutAliasRelation.getPortGroup().add(pgOutIsAlias);
 
     // Now we create the PortGroup and add the VLAN label.
-    NmlPortGroupType pg = topFactory.createNmlPortGroupType();
-    pg.setId("urn:ogf:network:dockertest.net:2021:topology:ps-in");
-    pg.getLabelGroup().add(nmlLabelGroupType);
-    pg.getRelation().add(isAliasRelation);
+    NmlPortGroupType pgIn = topFactory.createNmlPortGroupType();
+    pgIn.setId("urn:ogf:network:dockertest.net:2021:topology:ps-in");
+    pgIn.getLabelGroup().add(nmlLabelGroupType);
+    pgIn.getRelation().add(isInAliasRelation);
+
+    NmlPortGroupType pgOut = topFactory.createNmlPortGroupType();
+    pgOut.setId("urn:ogf:network:dockertest.net:2021:topology:ps-out");
+    pgOut.getLabelGroup().add(nmlLabelGroupType);
+    pgOut.getRelation().add(isOutAliasRelation);
 
     // Create the Relation element and add the PortGroup.
-    NmlTopologyRelationType relationType = topFactory.createNmlTopologyRelationType();
-    relationType.setType(HAS_INBOUND_PORT);
-    relationType.getPortGroup().add(pg);
+    NmlTopologyRelationType hasInboundRelationType = topFactory.createNmlTopologyRelationType();
+    hasInboundRelationType.setType(HAS_INBOUND_PORT);
+    hasInboundRelationType.getPortGroup().add(pgIn);
+
+    NmlTopologyRelationType hasOutboundRelationType = topFactory.createNmlTopologyRelationType();
+    hasOutboundRelationType.setType(HAS_OUTBOUND_PORT);
+    hasOutboundRelationType.getPortGroup().add(pgOut);
 
     // Add the serviceDefinition to the topology.
     ServiceDefinitionType sdType = topFactory.createServiceDefinitionType();
@@ -87,9 +103,36 @@ public class EncoderTest {
     // Now create a JAXB version of the serviceDefinition.
     JAXBElement<ServiceDefinitionType> serviceDefinition = topFactory.createServiceDefinition(sdType);
 
+    // Now we create the PortGroup and add the VLAN label.
+    NmlPortGroupType biIn = topFactory.createNmlPortGroupType();
+    biIn.setId("urn:ogf:network:dockertest.net:2021:topology:ps-in");
+
+    NmlPortGroupType biOut = topFactory.createNmlPortGroupType();
+    biOut.setId("urn:ogf:network:dockertest.net:2021:topology:ps-out");
+
+    NmlBidirectionalPortType nmlBidirectionalPortType = topFactory.createNmlBidirectionalPortType();
+    nmlBidirectionalPortType.setId("urn:ogf:network:dockertest.net:2021:topology:ps");
+    nmlBidirectionalPortType.setName("ps");
+    nmlBidirectionalPortType.getRest().add(topFactory.createPortGroup(biIn));
+    nmlBidirectionalPortType.getRest().add(topFactory.createPortGroup(biOut));
+
+    XMLGregorianCalendar start = XmlDate.longToXMLGregorianCalendar(System.currentTimeMillis());
+    XMLGregorianCalendar end = XmlDate.longToXMLGregorianCalendar(System.currentTimeMillis()+10000);
+
+    // Create a document lifecycle.
+    NmlLifeTimeType nmlLifeTimeType = topFactory.createNmlLifeTimeType();
+    nmlLifeTimeType.setStart(start);
+    nmlLifeTimeType.setEnd(end);
+
     // Create the topology document root element.
     NmlTopologyType topologyType = topFactory.createNmlTopologyType();
-    topologyType.getRelation().add(relationType);
+    topologyType.setId("urn:ogf:network:dockertest.net:2021:topology");
+    topologyType.setName("dockertest.net:2021:topology");
+    topologyType.setVersion(start);
+    topologyType.setLifetime(nmlLifeTimeType);
+    topologyType.getGroup().add(nmlBidirectionalPortType);
+    topologyType.getRelation().add(hasInboundRelationType);
+    topologyType.getRelation().add(hasOutboundRelationType);
     topologyType.getAny().add(serviceDefinition);
 
     // Create the JAXB topology object.
