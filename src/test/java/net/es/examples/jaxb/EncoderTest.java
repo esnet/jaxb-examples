@@ -94,7 +94,7 @@ public class EncoderTest {
     hasOutboundRelationType.setType(HAS_OUTBOUND_PORT);
     hasOutboundRelationType.getPortGroup().add(pgOut);
 
-    // Add the serviceDefinition to the topology.
+    // Create our serviceDefinition for the topology.
     ServiceDefinitionType sdType = topFactory.createServiceDefinitionType();
     sdType.setId("urn:ogf:network:dockertest.net:2021:topology:sd:EVTS.A-GOLE");
     sdType.setName("GLIF Automated GOLE Ethernet VLAN Transfer Service");
@@ -103,12 +103,34 @@ public class EncoderTest {
     // Now create a JAXB version of the serviceDefinition.
     JAXBElement<ServiceDefinitionType> serviceDefinition = topFactory.createServiceDefinition(sdType);
 
-    // Now we create the PortGroup and add the VLAN label.
+    // Now we create the PortGroup and add the portId.
     NmlPortGroupType biIn = topFactory.createNmlPortGroupType();
     biIn.setId("urn:ogf:network:dockertest.net:2021:topology:ps-in");
 
     NmlPortGroupType biOut = topFactory.createNmlPortGroupType();
     biOut.setId("urn:ogf:network:dockertest.net:2021:topology:ps-out");
+
+    // We also need a switching service.
+    NmlSwitchingServiceType switchingService = new NmlSwitchingServiceType();
+    switchingService.setId("urn:ogf:network:dockertest.net:2021:topology:ss:EVTS.A-GOLE");
+    switchingService.setLabelSwapping(true);
+    switchingService.setEncoding(EthEncodingTypes.HTTP_SCHEMAS_OGF_ORG_NML_2012_10_ETHERNET.value());
+    switchingService.setLabelType(EthLabelTypes.HTTP_SCHEMAS_OGF_ORG_NML_2012_10_ETHERNET_VLAN.value());
+    switchingService.getAny().add(topFactory.createServiceDefinition(sdType));
+
+    NmlSwitchingServiceRelationType inPortRelation = new NmlSwitchingServiceRelationType();
+    inPortRelation.setType(HAS_INBOUND_PORT);
+    inPortRelation.getPortGroup().add(biIn);
+    switchingService.getRelation().add(inPortRelation);
+
+    NmlSwitchingServiceRelationType outPortRelation = new NmlSwitchingServiceRelationType();
+    outPortRelation.setType(HAS_OUTBOUND_PORT);
+    outPortRelation.getPortGroup().add(biOut);
+    switchingService.getRelation().add(outPortRelation);
+
+    NmlTopologyRelationType serviceRelation = new NmlTopologyRelationType();
+    serviceRelation.setType(HAS_SERVICE);
+    serviceRelation.getService().add(switchingService);
 
     NmlBidirectionalPortType nmlBidirectionalPortType = topFactory.createNmlBidirectionalPortType();
     nmlBidirectionalPortType.setId("urn:ogf:network:dockertest.net:2021:topology:ps");
@@ -116,6 +138,7 @@ public class EncoderTest {
     nmlBidirectionalPortType.getRest().add(topFactory.createPortGroup(biIn));
     nmlBidirectionalPortType.getRest().add(topFactory.createPortGroup(biOut));
 
+    // We also need to add the unidirectional ports to the SwitchingService.
     XMLGregorianCalendar start = XmlDate.longToXMLGregorianCalendar(System.currentTimeMillis());
     XMLGregorianCalendar end = XmlDate.longToXMLGregorianCalendar(System.currentTimeMillis()+10000);
 
@@ -134,6 +157,7 @@ public class EncoderTest {
     topologyType.getRelation().add(hasInboundRelationType);
     topologyType.getRelation().add(hasOutboundRelationType);
     topologyType.getAny().add(serviceDefinition);
+    topologyType.getRelation().add(serviceRelation);
 
     // Create the JAXB topology object.
     JAXBElement<NmlTopologyType> topology = topFactory.createTopology(topologyType);
